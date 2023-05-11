@@ -85,7 +85,7 @@ def get_description_driver():
                 executor.submit(get_accurate_description, row, writer)
 
 def main():
-    get_news_driver()
+    #get_news_driver()
     get_description_driver()
 
 if __name__ == '__main__':
