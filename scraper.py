@@ -27,8 +27,7 @@ TICKERS = [
     'ATVI', 'EA', 'TTD', 'ZG', 'MTCH', 'YELP',
 ]
 
-OUTPUT_PATH = os.path.join('./results/', 'output' + '.csv')
-OUTPUT_PATH2 = os.path.join('./results/', 'output2' + '.csv')
+OUTPUT_PATH = os.path.join('./results/')
 
 def get_news_df(ticker_url, ticker, writer):
     r = requests.get(ticker_url)
@@ -58,7 +57,7 @@ def get_accurate_description(row, writer):
             p_text = p.string if p.string != None else ''
             description += p_text
         row['pub_date'] = soup.find('time').string if soup.find('time') else ''
-        row['description'] = description
+        row['description'] = bytes(description, 'utf-8').decode('utf-8', 'ignore')
     print(f"SUCCESSFUL DESCRIPTION EXCTRACTION [{row['ticker']}]: {row['link']}")
     writer.writerow(row.to_list())
 
@@ -66,8 +65,9 @@ def write_header(writer):
     header = ['ticker', 'title', 'description', 'pub_date', 'link', 'author'] 
     writer.writerow(header)
 
-def get_news_driver():
-    with open(OUTPUT_PATH, 'w', newline='') as csvfile:
+def get_news_driver(output_path):
+    output_path_file = os.path.join(output_path, "output.csv")
+    with open(output_path_file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         write_header(writer)
         with concurrent.futures.ThreadPoolExecutor(4) as executor:
@@ -75,18 +75,24 @@ def get_news_driver():
                 ticker_url = FINVIZ + ticker
                 executor.submit(get_news_df, ticker_url, ticker, writer)
 
-def get_description_driver():
-    df = pd.read_csv(OUTPUT_PATH)
-    with open(OUTPUT_PATH2, 'w', newline='') as csvfile:
+def get_description_driver(output_path):
+    output_path_file = os.path.join(output_path, "output.csv")
+    output_path_file_des = os.path.join(output_path, "output_des.csv")
+    df = pd.read_csv(output_path_file)
+    with open(output_path_file_des, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         write_header(writer)
         with concurrent.futures.ThreadPoolExecutor(4) as executor:
             for _, row in df.iterrows():
                 executor.submit(get_accurate_description, row, writer)
 
-def main():
-    #get_news_driver()
-    get_description_driver()
+def get_news(output_path = None):
+    if output_path:
+        get_news_driver(output_path)
+        get_description_driver(output_path)
+    else:
+        get_news_driver(OUTPUT_PATH)
+        get_description_driver(OUTPUT_PATH)
 
 if __name__ == '__main__':
-    main()
+    get_news()
